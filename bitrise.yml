@@ -1,0 +1,15 @@
+# Local test workflow for this step. Run with the Bitrise CLI from a git checkout:
+#
+#   bitrise run test
+#
+format_version: "13"
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+
+workflows:
+  test:
+    steps:
+    - path::./:
+        title: Branch Check (self test)
+        inputs:
+        - base_branch: main
+        - source_branch: $BITRISE_GIT_BRANCH

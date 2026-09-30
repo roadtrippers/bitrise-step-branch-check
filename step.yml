@@ -1,0 +1,87 @@
+title: Branch Check
+summary: Fails the build if the branch being built is behind its base branch (main, master, develop, etc.).
+description: |-
+  Verifies that the branch being built contains every commit on a configured base branch
+  and fails the build if it does not.
+
+  This is useful for distribution workflows (Firebase, TestFlight, etc.) where a build
+  should never be shipped from a branch that is missing changes already on `main`.
+
+  ### How it works
+
+  1. Fetches the base branch and the tip of the source branch from `origin`.
+  2. Runs `git merge-base --is-ancestor <base> <source>`.
+  3. If the base has commits the source branch lacks, the step lists them and fails.
+
+  On pull request builds Bitrise checks out a merge commit of the PR into its target, so
+  `HEAD` would always look up to date. The step therefore compares the remote tip of the
+  source branch (`origin/$BITRISE_GIT_BRANCH`) rather than `HEAD`.
+
+  Builds of the base branch itself, and of any branch listed in `skip_branches`, are skipped.
+
+  ### Usage
+
+  Add the step right after **Git Clone Repository** so a stale branch fails before any
+  expensive build work runs:
+
+  ```yaml
+  - git::https://github.com/roadtrippers/bitrise-step-branch-check.git@1.0.0:
+      inputs:
+      - base_branch: main
+  ```
+website: https://github.com/roadtrippers/bitrise-step-branch-check
+source_code_url: https://github.com/roadtrippers/bitrise-step-branch-check
+support_url: https://github.com/roadtrippers/bitrise-step-branch-check/issues
+
+type_tags:
+- utility
+
+project_type_tags: []
+
+is_requires_admin_user: false
+is_always_run: false
+is_skippable: false
+run_if: ""
+
+toolkit:
+  bash:
+    entry_file: step.sh
+
+inputs:
+- base_branch: main
+  opts:
+    title: Base branch
+    summary: The branch that represents "main" for this project (e.g. main, master, develop).
+    description: |-
+      The branch the source branch must be up to date with. The step fails if this branch
+      has any commits that are not on the source branch.
+
+      Must exist on `origin`.
+    is_required: true
+
+- source_branch: $BITRISE_GIT_BRANCH
+  opts:
+    title: Source branch
+    summary: The branch being built. Defaults to the branch Bitrise triggered the build for.
+    description: |-
+      The branch to check. Defaults to `$BITRISE_GIT_BRANCH`. If the branch cannot be fetched
+      from `origin` (for example it was deleted), the step falls back to comparing `HEAD`.
+    is_required: true
+
+- skip_branches: ""
+  opts:
+    title: Skip branches
+    summary: Additional branches to skip the check on, separated by spaces or commas.
+    description: |-
+      Builds of the base branch are always skipped. List any other branches here that
+      should not be checked, for example `master develop release`.
+    is_required: false
+
+outputs:
+- BRANCH_CHECK_COMMITS_BEHIND:
+  opts:
+    title: Commits behind
+    summary: Number of commits on the base branch that are missing from the source branch.
+    description: |-
+      `0` when the branch is up to date or the check was skipped. Only exported when the
+      step runs to completion; on failure the value is still exported before exiting.
